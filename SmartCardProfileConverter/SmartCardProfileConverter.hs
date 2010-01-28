@@ -30,4 +30,4 @@ removeComments str =  case (parse withoutComments "" str) of
 
 separators = many (oneOf " \n")
 
--- récupération des informations contenus dans le fichier
+-- rï¿½cupï¿½ration des informations contenus dans le fichier
