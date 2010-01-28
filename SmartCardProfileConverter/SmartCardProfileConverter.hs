@@ -1,4 +1,4 @@
-module Converter where
+module SmartCardProfileConverter where
 
 import Text.ParserCombinators.Parsec
 
