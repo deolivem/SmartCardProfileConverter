@@ -2,7 +2,6 @@ module SmartCardProfileConverter where
 
 import Text.ParserCombinators.Parsec
 
-test = "without comment line\n\\\\with comment line\npartial comment \\\\embedded on the midle of the code"
 
 displayErr :: ParseError -> String
 displayErr err = let pos = errorPos err
@@ -10,7 +9,7 @@ displayErr err = let pos = errorPos err
 
 
 withoutComments :: Parser String
-withoutComments = do first <- many (noneOf "\\")
+withoutComments = do first <- many (noneOf "\\/")
                      many (noneOf "\n")
                      next <- remainingWithoutComments
                      return (first ++ next)
@@ -28,6 +27,29 @@ removeComments str =  case (parse withoutComments "" str) of
                         (Left err) -> error (displayErr err)
                         (Right x)  -> x
 
+run p str = case (parse p "" str) of
+              (Left err) -> error (displayErr err)
+              (Right x)  -> x              
+
+
+runFile file p withComments = do str <- readFile file
+                                 if withComments
+                                   then return $ run p str
+                                   else return $ run p (removeComments str)
+
 separators = many (oneOf " \n")
 
--- r�cup�ration des informations contenus dans le fichier
+
+getField field = do separators
+                    string field
+                    separators
+                    char '='
+                    separators
+                    digit
+
+getClockStopMode = getField "ClockStopMode"
+
+getVoltage = getField "Voltage"
+
+getAlgorithmFrequency = getField "AlgorithmFrequency"
+
