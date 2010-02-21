@@ -86,3 +86,14 @@ getBooleanField fieldName = getField fieldName boolean
 
 -- parse a field containing a number
 getNumberField fieldName = getField fieldName number
+
+-- parse a field containing bytes
+getBytesField fieldName = getField fieldName bytes
+
+-- parse a field containing AlphaNum caracter
+getStringField fieldName = getField fieldName (many1 alphaNum)
+
+getValue = do separators
+              string "Value"
+              separators
+              bytes

@@ -2,6 +2,7 @@ module SmartCardProfileConverter where
 
 import Text.ParserCombinators.Parsec
 import Parser.Tools
+import Parser.ParseIDF
 
 displayErr :: ParseError -> String
 displayErr err = let pos = errorPos err
@@ -27,17 +28,6 @@ removeComments str =  case (parse withoutComments "" str) of
                         (Left err) -> error (displayErr err)
                         (Right x)  -> x
 
-
-getValue = do separators
-              string "Value"
-              separators
-              bytes
-
-getClockStopMode = getDigitField "ClockStopMode"
-
-getVoltage = getDigitField "Voltage"
-
-getAlgorithmFrequency = getDigitField "AlgorithmFrequency"
 
 getDefine key p = do separators
                      string "Define"
@@ -68,14 +58,16 @@ getPUK2 = getDefine "UNBLOCK CHV2" getPINContent
 getProfile = do clockStopMode <- getClockStopMode
                 voltage <- getVoltage
                 algo <- getAlgorithmFrequency
+                def <- many (try define)
+                return (clockStopMode, voltage, algo, def)
+{-
                 atr <- getATR
                 pin1 <- getPIN1
                 puk1 <- getPUK1
                 pin2 <- getPIN2
                 puk2 <- getPUK2
                 return (clockStopMode, voltage, algo, atr, pin1, puk1, pin2, puk2)
-
-
+-}
 run p str = case (parse p "" str) of
               (Left err) -> error (displayErr err)
               (Right x)  -> x              
