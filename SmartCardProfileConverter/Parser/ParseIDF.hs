@@ -1,5 +1,6 @@
 module Parser.ParseIDF where
 
+import Data.Word
 import Parser.Tools
 import Text.ParserCombinators.Parsec
 
@@ -38,12 +39,12 @@ getRecord = do separators
                xs <- try (getRecord) <|> return []
                return (x:xs)
 
-data IDFDefine = DefineATR [Integer]
-               | DefineCHV String Bool Bool Integer [Integer]
-               | DefineKi [Integer]
-               | DefineMS [Integer]
-               | DefineDF [Integer] [Integer]
-               | DefineEF [Integer] [Integer] Bool Bool FileStructure Integer Integer Integer Integer Integer [[Integer]]
+data IDFDefine = DefineATR [Word8]
+               | DefineCHV String Bool Bool Integer [Word8]
+               | DefineKi [Word8]
+               | DefineMS [Word8]
+               | DefineDF [Word8] [Word8]
+               | DefineEF [Word8] [Word8] Bool Bool FileStructure Integer Integer Integer Integer Integer [[Word8]]
 
 instance Show IDFDefine where
   show (DefineATR xs) = "ATR: " ++ show xs ++ "\n"
