@@ -37,22 +37,6 @@ getDefine key p = do separators
                      value <- p
                      return value
 
-getATR = getDefine "ATR" (many (noneOf "\n"))
-
-getPINContent = do init    <- getBooleanField "Initialised"
-                   enable  <- try (getBooleanField "Enabled") <|> return True
-                   attempt <- getNumberField "AttemptsRemaining"
-                   value   <- getValue
-                   return (init, enable, attempt, value)
-
-getPIN1 = getDefine "CHV1" getPINContent
-
-getPUK1 = getDefine "UNBLOCK CHV1" getPINContent
-
-getPIN2 = getDefine "CHV2" getPINContent
-
-getPUK2 = getDefine "UNBLOCK CHV2" getPINContent
-
 -- all field
 
 getProfile = do clockStopMode <- getClockStopMode
@@ -60,14 +44,7 @@ getProfile = do clockStopMode <- getClockStopMode
                 algo <- getAlgorithmFrequency
                 def <- many (try define)
                 return (clockStopMode, voltage, algo, def)
-{-
-                atr <- getATR
-                pin1 <- getPIN1
-                puk1 <- getPUK1
-                pin2 <- getPIN2
-                puk2 <- getPUK2
-                return (clockStopMode, voltage, algo, atr, pin1, puk1, pin2, puk2)
--}
+
 run p str = case (parse p "" str) of
               (Left err) -> error (displayErr err)
               (Right x)  -> x              

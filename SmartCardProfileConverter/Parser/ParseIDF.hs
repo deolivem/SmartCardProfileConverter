@@ -5,8 +5,14 @@ import Parser.Tools
 import Text.ParserCombinators.Parsec
 
 -- hardware description
+
+getClockStopMode :: Parser String
 getClockStopMode = getDigitField "ClockStopMode"
+
+getVoltage :: Parser String
 getVoltage = getDigitField "Voltage"
+
+getAlgorithmFrequency :: Parser String
 getAlgorithmFrequency = getDigitField "AlgorithmFrequency"
 
 -- card contents
@@ -57,11 +63,11 @@ instance Show IDFDefine where
 getATRContent = do value <- bytes
                    return $ DefineATR value
 
-_getPINContent name = do init    <- getBooleanField "Initialised"
-                         enable  <- try (getBooleanField "Enabled") <|> return True
-                         attempt <- getNumberField "AttemptsRemaining"
-                         value   <- getValue
-                         return $ (DefineCHV name init enable attempt value)
+getPINContent name = do init    <- getBooleanField "Initialised"
+                        enable  <- try (getBooleanField "Enabled") <|> return True
+                        attempt <- getNumberField "AttemptsRemaining"
+                        value   <- getValue
+                        return $ (DefineCHV name init enable attempt value)
 
 getKiContent = do value <- bytes 
                   return $ DefineKi value
@@ -95,7 +101,7 @@ getEFContent = do value             <- bytes
                             return $ DefineEF value parent invalidated accessWhenInvalid struct read update increase invalidate rehabilitate xss
 
 parsePIN = do name <- try (string "CHV1") <|> try (string "UNBLOCK CHV1") <|> try (string "CHV2") <|> string "UNBLOCK CHV2"
-              return $ _getPINContent name
+              return $ getPINContent name
 
 parseATR = do string "ATR"
               return $ getATRContent
