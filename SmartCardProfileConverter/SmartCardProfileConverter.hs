@@ -29,22 +29,6 @@ removeComments str =  case (parse withoutComments "" str) of
                         (Right x)  -> x
 
 
-getDefine key p = do separators
-                     string "Define"
-                     separators
-                     string key
-                     separators
-                     value <- p
-                     return value
-
--- all field
-
-getProfile = do clockStopMode <- getClockStopMode
-                voltage <- getVoltage
-                algo <- getAlgorithmFrequency
-                def <- many (try define)
-                return (clockStopMode, voltage, algo, def)
-
 run p str = case (parse p "" str) of
               (Left err) -> error (displayErr err)
               (Right x)  -> x              
@@ -57,4 +41,4 @@ runFile file p withComments = do str <- readFile file
 
                 
 -- testing commands
-test = runFile "example/BTdefault.idf" getProfile False
+test = runFile "example/BTdefault.idf" getSmartCard False

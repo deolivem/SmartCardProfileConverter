@@ -1,9 +1,25 @@
 module Data.SmartCard.File where
 
-import Data.Word
+import Data.SmartCard.File.Types
 
-data FileID = (Word8, Word8)
+data File = MasterFile FileID
+          | DedicatedFile  FileID FileID
+          | ElementaryFile FileID FileID Bool Bool EFAccessCondition EFAccessCondition EFAccessCondition EFAccessCondition EFAccessCondition EFContent
+          deriving (Show)
+-- MasterFile
+--   FileID
 
-class File a where
-  getFileID :: a -> FileID
-  getParent :: a -> a
+-- DedicatedFile
+--   FileID
+--   ParentID
+
+-- ElementaryFile
+--   FileID
+--   ParentID
+--   Invalidated
+--   AccessibleWhenInvalidated
+--   readAccessCondition
+--   updateAccessCondition
+--   increaseAccessCondition
+--   deactivateAccessCondition
+--   activateAccessCondition

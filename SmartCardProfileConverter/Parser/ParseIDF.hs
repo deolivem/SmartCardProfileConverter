@@ -1,19 +1,14 @@
 module Parser.ParseIDF where
 
 import Data.Word
+import Data.SmartCard
+import Data.SmartCard.ATR
+import Data.SmartCard.File
+import Data.SmartCard.File.Types
+import Data.SmartCard.Ki
+import Data.SmartCard.PIN
 import Parser.Tools
 import Text.ParserCombinators.Parsec
-
--- hardware description
-
-getClockStopMode :: Parser String
-getClockStopMode = getDigitField "ClockStopMode"
-
-getVoltage :: Parser String
-getVoltage = getDigitField "Voltage"
-
-getAlgorithmFrequency :: Parser String
-getAlgorithmFrequency = getDigitField "AlgorithmFrequency"
 
 -- card contents
 
@@ -61,26 +56,26 @@ instance Show IDFDefine where
   show (DefineEF xs ys _ _ _ _ _ _ _ _ _) = "EF " ++ show xs ++ " Parent: " ++ show ys ++ "\n"
 
 getATRContent = do value <- bytes
-                   return $ DefineATR value
+                   return $ ATR value
 
 getPINContent name = do init    <- getBooleanField "Initialised"
                         enable  <- try (getBooleanField "Enabled") <|> return True
                         attempt <- getNumberField "AttemptsRemaining"
                         value   <- getValue
-                        return $ (DefineCHV name init enable attempt value)
+                        return $ (PIN name init enable attempt value)
 
 getKiContent = do value <- bytes 
-                  return $ DefineKi value
+                  return $ Ki value
 
 getMFContent = do separators
                   string "DF"
                   separators
                   value <- bytes
-                  return $ DefineMS value
+                  return $ MasterFile (convFileID value)
 
 getDFContent = do value <- bytes
                   parent <- getBytesField "Parent"
-                  return $ DefineDF value parent
+                  return $ DedicatedFile (convFileID value) (convFileID parent)
 
 getEFContent = do value             <- bytes
                   parent            <- getBytesField "Parent"
@@ -95,10 +90,10 @@ getEFContent = do value             <- bytes
                   if struct == Transparent
                     then do
                             xs <- getData
-                            return $ DefineEF value parent invalidated accessWhenInvalid struct read update increase invalidate rehabilitate [xs]
+                            return $ ElementaryFile (convFileID value) (convFileID parent) invalidated accessWhenInvalid (convAccessCondition read) (convAccessCondition update) (convAccessCondition increase) (convAccessCondition invalidate) (convAccessCondition rehabilitate) (EFTransparent xs)
                     else do
                             xss <- getRecord
-                            return $ DefineEF value parent invalidated accessWhenInvalid struct read update increase invalidate rehabilitate xss
+                            return $ ElementaryFile (convFileID value) (convFileID parent) invalidated accessWhenInvalid (convAccessCondition read) (convAccessCondition update) (convAccessCondition increase) (convAccessCondition invalidate) (convAccessCondition rehabilitate) (EFLinearFixed xss)
 
 parsePIN = do name <- try (string "CHV1") <|> try (string "UNBLOCK CHV1") <|> try (string "CHV2") <|> string "UNBLOCK CHV2"
               return $ getPINContent name
@@ -109,26 +104,77 @@ parseATR = do string "ATR"
 parseKi = do string "Ki"
              return $ getKiContent
 
+parseMF :: Parser (Parser File)
 parseMF = do string "MF"
              return $ getMFContent
 
+parseDF :: Parser (Parser File)
 parseDF = do string "DF"
              return $ getDFContent
 
+parseEF :: Parser (Parser File)
 parseEF = do string "EF"
              return $ getEFContent
-             
-parseDefineKey = try parseATR
-             <|> try parsePIN
-             <|> try parseKi
-             <|> try parseMF
-             <|> try parseDF
-             <|> try parseEF
-             <?> "Unknow define"
-define = do separators
-            string "Define"
-            separators
-            parser <- parseDefineKey
-            separators
-            value <- parser
-            return value
+
+parseFile :: Parser (Parser File)
+parseFile = try parseEF
+        <|> try parseDF
+        <|> try parseMF
+        <?> "Unknown File"
+  
+parseDefine :: Parser (Parser a) -> Parser a
+parseDefine parseKey = do separators
+                          string "Define"
+                          separators
+                          parser <- parseKey
+                          separators
+                          value <- parser
+                          return value
+
+getATR :: Parser ATR
+getATR = parseDefine parseATR
+
+getKi :: Parser Ki
+getKi = parseDefine parseKi
+
+getPIN :: Parser PIN
+getPIN = parseDefine parsePIN
+
+getFile :: Parser File
+getFile = parseDefine parseFile
+
+getClockStopMode :: Parser ClockStopMode
+getClockStopMode = do value <- getDigitField "ClockStopMode"
+                      case value of
+                        "0" -> return $ ClockStopNotAllowed
+                        "1" -> return $ ClockStopNotAllowedUnlessAtLowLevel
+                        "2" -> return $ ClockStopNotAllowedUnlessAtHighLevel
+                        "3" -> return $ ClockStopAllowedNoPreferredLevel
+                        "4" -> return $ ClockStopAllowedLowLevelPreferred
+                        "5" -> return $ ClockStopAllowedHighLevelPreferred
+                        otherwise -> fail "Unknown value for ClockModeStop"
+
+getVoltage :: Parser Voltage
+getVoltage = do value <- getDigitField "Voltage"
+                case value of
+                  "5"   -> return $ FiveVolt
+                  "3"   -> return $ ThreeVolt
+                  "1.8" -> return $ OneDotEightVolt
+                  otherwise -> fail "Unknown value for voltage"
+
+getAlgorithmFrequency :: Parser Frequency
+getAlgorithmFrequency = do value <- getDigitField "AlgorithmFrequency"
+                           case value of
+                             "4" -> return $ FourMHertz
+                             "8" -> return $ EightMHertz
+                             otherwise -> fail "Unknown value for AlgorithmFrequency"
+
+getSmartCard :: Parser SmartCard
+getSmartCard = do clockStopMode <- getClockStopMode
+                  voltage <- getVoltage
+                  frequency <- getAlgorithmFrequency
+                  atr <- getATR
+                  security <- many1 $ try getPIN
+                  ki <- getKi
+                  filesystem <- many1 $ try getFile
+                  return $ SmartCard voltage clockStopMode frequency atr ki security filesystem
