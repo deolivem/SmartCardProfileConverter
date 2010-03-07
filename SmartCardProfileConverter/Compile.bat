@@ -1,2 +1,2 @@
-ghc -main-is SmartCardProfileConverter --make SmartCardProfileConverter -o ProfileConverter
+ghc --make Main -o ProfileConverter
 PAUSE

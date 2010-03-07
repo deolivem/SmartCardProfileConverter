@@ -1,4 +1,4 @@
-module SmartCardProfileConverter where
+module Main where
 
 import Control.Monad.State
 import Data.SmartCard
