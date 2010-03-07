@@ -1,4 +1,4 @@
-module Parser.ParseIDF where
+module Parser.IDF (getSmartCardFromIDF) where
 
 import Data.Word
 import Data.SmartCard
@@ -169,12 +169,12 @@ getAlgorithmFrequency = do value <- getDigitField "AlgorithmFrequency"
                              "8" -> return $ EightMHertz
                              otherwise -> fail "Unknown value for AlgorithmFrequency"
 
-getSmartCard :: Parser SmartCard
-getSmartCard = do clockStopMode <- getClockStopMode
-                  voltage <- getVoltage
-                  frequency <- getAlgorithmFrequency
-                  atr <- getATR
-                  security <- many1 $ try getPIN
-                  ki <- getKi
-                  filesystem <- many1 $ try getFile
-                  return $ SmartCard voltage clockStopMode frequency atr ki security filesystem
+getSmartCardFromIDF :: Parser SmartCard
+getSmartCardFromIDF = do clockStopMode <- getClockStopMode
+                         voltage <- getVoltage
+                         frequency <- getAlgorithmFrequency
+                         atr <- getATR
+                         security <- many1 $ try getPIN
+                         ki <- getKi
+                         filesystem <- many1 $ try getFile
+                         return $ SmartCard voltage clockStopMode frequency atr ki security filesystem

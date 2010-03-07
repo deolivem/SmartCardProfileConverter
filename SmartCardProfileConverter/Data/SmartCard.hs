@@ -34,3 +34,6 @@ data SmartCard =
               security :: [PIN],
               filesystem :: [File]}
               deriving (Show)
+
+
+emptySmartCard = SmartCard ThreeVolt ClockStopNotAllowed FourMHertz (ATR []) (Ki []) [] []
