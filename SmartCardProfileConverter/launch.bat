@@ -1,1 +1,1 @@
-ghci SmartCardProfileConverter
+ghci Main

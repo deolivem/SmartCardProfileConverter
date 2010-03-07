@@ -1,3 +1,5 @@
 module Parser.DFL where
 
-getSmartCard
+import Data.SmartCard
+
+getSmartCardFromDFL

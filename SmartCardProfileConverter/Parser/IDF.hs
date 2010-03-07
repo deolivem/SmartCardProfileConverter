@@ -17,22 +17,28 @@ data FileStructure = Transparent
                    | Cyclic
                    deriving (Show, Eq)
 
+transparent :: Parser FileStructure
 transparent = do string "Transparent"
                  return Transparent
 
+linearFixed :: Parser FileStructure
 linearFixed = do string "LinearFixed"
                  return LinearFixed
-                 
+
+cyclic :: Parser FileStructure
 cyclic = do string "Cyclic"
             return Cyclic
 
+structure :: Parser FileStructure
 structure = try (transparent) <|> try (linearFixed) <|> try (cyclic) <?> "Unknown file structure"
 
+getData :: Parser [Word8]
 getData = do separators
              string "Data"
              separators
              bytes
 
+getRecord :: Parser [[Word8]]
 getRecord = do separators 
                string "Record"
                separators
@@ -40,43 +46,34 @@ getRecord = do separators
                xs <- try (getRecord) <|> return []
                return (x:xs)
 
-data IDFDefine = DefineATR [Word8]
-               | DefineCHV String Bool Bool Integer [Word8]
-               | DefineKi [Word8]
-               | DefineMS [Word8]
-               | DefineDF [Word8] [Word8]
-               | DefineEF [Word8] [Word8] Bool Bool FileStructure Integer Integer Integer Integer Integer [[Word8]]
-
-instance Show IDFDefine where
-  show (DefineATR xs) = "ATR: " ++ show xs ++ "\n"
-  show (DefineCHV n _ _ _ v) = "CHV: " ++ show n ++ " " ++ show v ++ "\n"
-  show (DefineKi xs) = "Ki: " ++ show xs ++ "\n"
-  show (DefineMS xs) = "MS " ++ show xs ++ "\n"
-  show (DefineDF xs ys) = "DF " ++ show xs ++ " Parent: " ++ show ys ++ "\n"
-  show (DefineEF xs ys _ _ _ _ _ _ _ _ _) = "EF " ++ show xs ++ " Parent: " ++ show ys ++ "\n"
-
+getATRContent :: Parser ATR
 getATRContent = do value <- bytes
                    return $ ATR value
 
+getKiContent :: Parser Ki
+getKiContent = do value <- bytes 
+                  return $ Ki value
+
+getPINContent :: String -> Parser PIN
 getPINContent name = do init    <- getBooleanField "Initialised"
                         enable  <- try (getBooleanField "Enabled") <|> return True
                         attempt <- getNumberField "AttemptsRemaining"
                         value   <- getValue
                         return $ (PIN name init enable attempt value)
 
-getKiContent = do value <- bytes 
-                  return $ Ki value
-
+getMFContent :: Parser File
 getMFContent = do separators
                   string "DF"
                   separators
                   value <- bytes
                   return $ MasterFile (convFileID value)
 
+getDFContent :: Parser File
 getDFContent = do value <- bytes
                   parent <- getBytesField "Parent"
                   return $ DedicatedFile (convFileID value) (convFileID parent)
 
+getEFContent :: Parser File
 getEFContent = do value             <- bytes
                   parent            <- getBytesField "Parent"
                   invalidated       <- getBooleanField "Invalidated"
@@ -95,12 +92,15 @@ getEFContent = do value             <- bytes
                             xss <- getRecord
                             return $ ElementaryFile (convFileID value) (convFileID parent) invalidated accessWhenInvalid (convAccessCondition read) (convAccessCondition update) (convAccessCondition increase) (convAccessCondition invalidate) (convAccessCondition rehabilitate) (EFLinearFixed xss)
 
+parsePIN :: Parser (Parser PIN)
 parsePIN = do name <- try (string "CHV1") <|> try (string "UNBLOCK CHV1") <|> try (string "CHV2") <|> string "UNBLOCK CHV2"
               return $ getPINContent name
 
+parseATR :: Parser (Parser ATR)
 parseATR = do string "ATR"
               return $ getATRContent
 
+parseKi :: Parser (Parser Ki)
 parseKi = do string "Ki"
              return $ getKiContent
 
