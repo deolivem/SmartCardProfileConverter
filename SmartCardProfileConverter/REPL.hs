@@ -20,34 +20,42 @@ data Cmd = CmdChangeDirectory String
 -- load: load a file containing the SmartCard Profile
 -- export: export the current profile to 
 
+parsingString :: Parser String
 parsingString = do char '\"'
                    v <- many1 ( noneOf "\n\"")
                    char '\"'
                    return v
 
+parsingWord :: Parser String
 parsingWord = do many1 (noneOf " ")
 
+parsingChangeDirectory :: Parser Cmd
 parsingChangeDirectory = do string "cd"
                             space
                             str <- parsingString <|> parsingWord <?> "No directory name"
                             return $ CmdChangeDirectory str
 
+parsingLoad :: Parser Cmd
 parsingLoad = do string "load"
                  space
                  str <- parsingWord <|> parsingString <?> "No file name"
                  return $ CmdLoad str
                  
+parsingExport :: Parser Cmd
 parsingExport = do string "export"
                    space
                    str <- parsingWord <|> parsingString <?> "No file name"
                    return $ CmdExport str
 
+parsingQuit :: Parser Cmd
 parsingQuit = do string "quit"
                  return $ CmdQuit
 
+parsingHelp :: Parser Cmd
 parsingHelp = do string "help"
                  return $ CmdHelp
 
+parsingCmd :: Parser Cmd
 parsingCmd = parsingChangeDirectory <|> parsingLoad <|> parsingExport <|> parsingQuit <|> parsingHelp <?> "Unknown command"
 
 patchDirectoryName :: String -> String
