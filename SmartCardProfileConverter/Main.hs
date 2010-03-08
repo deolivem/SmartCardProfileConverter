@@ -18,6 +18,7 @@ interactREPL f = do liftIO $ putStr ">"
                       then (liftIO $ putStrLn v) >> interactREPL f
                       else return()
 
+main :: IO ()
 main = do putStrLn msgStartup
           runStateT (interactREPL interactWithCmd) emptySmartCard
           putStrLn msgEnd
