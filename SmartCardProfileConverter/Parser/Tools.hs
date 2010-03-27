@@ -1,7 +1,6 @@
 module Parser.Tools where
 
 import Data.Hexadecimal
-import Data.Word
 import Text.ParserCombinators.Parsec
 
 -- Basic type
@@ -21,23 +20,6 @@ boolean = do
           if v == "Yes"
             then return True
             else return False
-
-hexadecimal :: Parser Char
-hexadecimal = do oneOf "0123456789ABCDEF"
-
-
--- parse a byte represented by an hexadecimal string
-byte :: Parser Word8
-byte = do first  <- hexadecimal
-          second <- hexadecimal
-          return $ readHex (first:second:[])
-
--- parse bytes represented by an hexadecimal string
-bytes :: Parser [Word8]
-bytes = do separators
-           x  <- byte
-           xs <- (try bytes) <|> return []
-           return $ x:xs
 
 decimal :: Parser Integer
 decimal = do v <- oneOf "0123456789"
@@ -74,6 +56,13 @@ getField fieldName fieldParse = do separators
                                    separators
                                    fieldParse
 
+-- Parse a field of the format "fieldName fieldValue" (without '=')
+getField2 :: String -> Parser a -> Parser a
+getField2 fieldName fieldParse = do separators
+                                    string fieldName
+                                    separators
+                                    fieldParse
+                                   
 -- parse a field containing a digit
 getDigitField fieldName = getField fieldName (many digit)
 
@@ -83,13 +72,39 @@ getBooleanField fieldName = getField fieldName boolean
 -- parse a field containing a number
 getNumberField fieldName = getField fieldName number
 
--- parse a field containing bytes
-getBytesField fieldName = getField fieldName bytes
-
 -- parse a field containing AlphaNum caracter
 getStringField fieldName = getField fieldName (many1 alphaNum)
 
-getValue = do separators
-              string "Value"
-              separators
-              bytes
+
+
+parseDefine :: Parser (Parser a) -> Parser a
+parseDefine parseKey = do separators
+                          string "Define"
+                          separators
+                          parser <- parseKey
+                          separators
+                          value <- parser
+                          return value
+
+
+data FileStructure = Transparent
+                   | LinearFixed
+                   | Cyclic
+                   deriving (Show, Eq)
+
+transparent :: Parser FileStructure
+transparent = do string "Transparent"
+                 return Transparent
+
+linearFixed :: Parser FileStructure
+linearFixed = do string "LinearFixed"
+                 return LinearFixed
+
+cyclic :: Parser FileStructure
+cyclic = do string "Cyclic"
+            return Cyclic
+
+structure :: Parser FileStructure
+structure = try (transparent) <|> try (linearFixed) <|> try (cyclic) <?> "Unknown file structure"
+
+  

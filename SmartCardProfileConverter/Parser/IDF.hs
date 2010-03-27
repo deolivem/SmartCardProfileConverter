@@ -1,36 +1,50 @@
 module Parser.IDF (getSmartCardFromIDF) where
 
-import Data.Word
+import Data.Hexadecimal
 import Data.SmartCard
 import Data.SmartCard.ATR
 import Data.SmartCard.File
 import Data.SmartCard.File.Types
 import Data.SmartCard.Ki
 import Data.SmartCard.PIN
+import Data.Word
 import Parser.Tools
 import Text.ParserCombinators.Parsec
 
--- card contents
+-- String parsing for hexadecimal value
 
-data FileStructure = Transparent
-                   | LinearFixed
-                   | Cyclic
-                   deriving (Show, Eq)
+-- In DFL file, hexadecimal value are coded with big letter
+hexadecimal :: Parser Char
+hexadecimal = do oneOf "0123456789ABCDEF"
 
-transparent :: Parser FileStructure
-transparent = do string "Transparent"
-                 return Transparent
+-- Parse a byte represented by an hexadecimal string
+byte :: Parser Word8
+byte = do first <- hexadecimal
+          second <- hexadecimal
+          return $ readHex (first:second:[])
 
-linearFixed :: Parser FileStructure
-linearFixed = do string "LinearFixed"
-                 return LinearFixed
+-- Parser bytes represented by an hexadecimal string
+bytes :: Parser [Word8]
+bytes = do separators
+           x <- byte
+           xs <- (try bytes) <|> return []
+           return $ x:xs
 
-cyclic :: Parser FileStructure
-cyclic = do string "Cyclic"
-            return Cyclic
+hexaDigit :: Parser Integer
+hexaDigit = do separators
+               x <- hexadecimal
+               return $ readHexaChar x
 
-structure :: Parser FileStructure
-structure = try (transparent) <|> try (linearFixed) <|> try (cyclic) <?> "Unknown file structure"
+-- parse a fied containing an hexadecimal character
+getHexaField fieldName = getField fieldName hexaDigit
+
+-- parse a field containing bytes
+getBytesField fieldName = getField fieldName bytes
+
+getValue = do separators
+              string "Value"
+              separators
+              bytes
 
 getData :: Parser [Word8]
 getData = do separators
@@ -45,7 +59,8 @@ getRecord = do separators
                x <- bytes
                xs <- try (getRecord) <|> return []
                return (x:xs)
-
+               
+-- card contents
 getATRContent :: Parser ATR
 getATRContent = do value <- bytes
                    return $ ATR value
@@ -121,15 +136,6 @@ parseFile = try parseEF
         <|> try parseDF
         <|> try parseMF
         <?> "Unknown File"
-  
-parseDefine :: Parser (Parser a) -> Parser a
-parseDefine parseKey = do separators
-                          string "Define"
-                          separators
-                          parser <- parseKey
-                          separators
-                          value <- parser
-                          return value
 
 getATR :: Parser ATR
 getATR = parseDefine parseATR

@@ -5,6 +5,7 @@ import Data.SmartCard.File
 import Data.SmartCard.Ki
 import Data.SmartCard.PIN
 
+import Data.SmartCard.Class.Default
 
 
 -- definition of the different parameters
@@ -16,14 +17,23 @@ data ClockStopMode = ClockStopNotAllowed
                    | ClockStopAllowedHighLevelPreferred
                    deriving (Show)
 
+instance Default ClockStopMode where
+  defaultValue = ClockStopNotAllowed
+                   
 data Voltage = FiveVolt
              | ThreeVolt
              | OneDotEightVolt
              deriving (Show)
 
+instance Default Voltage where
+  defaultValue = ThreeVolt
+             
 data Frequency = FourMHertz
                | EightMHertz
                deriving (Show)
+             
+instance Default Frequency where
+  defaultValue = FourMHertz
              
 data SmartCard =
   SmartCard { voltage :: Voltage,
@@ -35,5 +45,5 @@ data SmartCard =
               filesystem :: [File]}
               deriving (Show)
 
-
-emptySmartCard = SmartCard ThreeVolt ClockStopNotAllowed FourMHertz (ATR []) (Ki []) [] []
+instance Default SmartCard where
+  defaultValue = SmartCard defaultValue defaultValue defaultValue defaultValue defaultValue [] []
