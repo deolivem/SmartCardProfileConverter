@@ -8,7 +8,7 @@ Define CHV1
   Disabled = Yes
   AttemptsRemaining = 3
   Value
-  30 30 30 30 
+  30 30 30 30
 
 Define CHV2
   Initialised = Yes

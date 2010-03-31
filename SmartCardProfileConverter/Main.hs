@@ -3,6 +3,7 @@ module Main where
 import Control.Monad.State
 import Control.Monad.Trans
 import Data.SmartCard
+import Data.SmartCard.Class.Default
 import REPL
 import REPL.State
 
@@ -12,7 +13,7 @@ msgStartup = "\nSmartCard Profile converter\n\nCommands supported:\ncd:         
 msgEnd = "Copyright Marco De Oliveira 2010"
 
 interactREPL :: (REPLState String -> REPLState (String, Bool)) -> REPLState ()
-interactREPL f = do liftIO $ putStr ">"
+interactREPL f = do liftIO $ putStr "> "
                     (v, continue) <- f (liftIO $ getLine)
                     if continue
                       then (liftIO $ putStrLn v) >> interactREPL f
@@ -20,6 +21,7 @@ interactREPL f = do liftIO $ putStr ">"
 
 main :: IO ()
 main = do putStrLn msgStartup
-          runStateT (interactREPL interactWithCmd) emptySmartCard
+          (_, profile) <- runStateT (interactREPL interactWithCmd) defaultValue
           putStrLn msgEnd
+          putStrLn $ show profile
           return ()

@@ -1,10 +1,9 @@
 module Parser where
 
-import Data.SmartCard (SmartCard)
-import Parser.IDF
+import Text.ParserCombinators.Parsec
 import System.Directory (doesFileExist)
 import System.FilePath (splitExtension)
-import Text.ParserCombinators.Parsec
+import Parser.IDF
 
 
 -- Removing comments on the files
@@ -34,7 +33,6 @@ displayErr err = let pos = errorPos err
 
 
 -- return the parser in function of file extention
-getParser :: FilePath -> Parser SmartCard
 getParser file = let (_, ext) = splitExtension file in
                    case ext of
                      ".idf" -> getSmartCardFromIDF
@@ -45,11 +43,10 @@ run p str = case (parse p "" str) of
               (Left err) -> error (displayErr err)
               (Right x)  -> x
 
-runFile :: FilePath -> Parser a -> IO a
 runFile file p = do str <- readFile file
                     return $ run p (removeComments str)
 
-parseFile :: FilePath -> IO SmartCard
+
 parseFile file = do exist <- doesFileExist file
                     if (exist)
                       then runFile file (getParser file)
