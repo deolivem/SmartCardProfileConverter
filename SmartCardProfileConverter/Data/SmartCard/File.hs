@@ -21,5 +21,5 @@ data File = MasterFile FileID
 --   readAccessCondition
 --   updateAccessCondition
 --   increaseAccessCondition
---   deactivateAccessCondition
---   activateAccessCondition
+--   invalidateAccessCondition
+--   rehabilitateAccessCondition
