@@ -4,6 +4,7 @@ import Text.ParserCombinators.Parsec
 import System.Directory (doesFileExist)
 import System.FilePath (splitExtension)
 import Parser.IDF
+import Parser.DFL
 
 
 -- Removing comments on the files
@@ -36,6 +37,7 @@ displayErr err = let pos = errorPos err
 getParser file = let (_, ext) = splitExtension file in
                    case ext of
                      ".idf" -> getSmartCardFromIDF
+                     ".dfl" -> getSmartCardFromDFL
                      otherwise -> error "File type not supported"
 
 -- File parsing

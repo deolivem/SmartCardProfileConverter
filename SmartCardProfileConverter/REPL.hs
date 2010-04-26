@@ -4,6 +4,7 @@ import Control.Exception (IOException)
 import Control.Monad.Trans
 import Control.Monad.State
 import Parser
+import Exporter
 import REPL.State
 import System.Directory (setCurrentDirectory)
 import Text.ParserCombinators.Parsec
@@ -76,8 +77,12 @@ evalCmd x = do v <- x
                  CmdChangeDirectory dir -> liftIO $ cmdChangeDirectory dir
                  CmdLoad file           -> do sc <- liftIO $ parseFile file 
                                               put sc
-                                              return ("File loaded...", True)
-                 otherwise    -> return $ (show v, True)
+                                              return ("File " ++ file ++ " loaded", True)
+                 CmdExport file         -> do sc <- get
+                                              liftIO $ exportSmartCardToFile sc file
+                                              return ("File exported to " ++ file, True)
+                 otherwise              -> return $ (show v, True)
+
 
 interactWithCmd :: REPLState String -> REPLState (String, Bool)
 interactWithCmd strT = do str <- strT

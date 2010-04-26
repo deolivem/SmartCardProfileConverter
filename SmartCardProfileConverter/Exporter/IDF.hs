@@ -10,14 +10,18 @@ import Data.SmartCard.File.Types
 import Data.SmartCard.PIN
 
 
-
-exportToIDF _ = ""
-
-
 -- Definition of characters
 returnLine = '\n'
 tab = "    "  -- tabulation are coded with 4 spaces
 
+
+exportToIDF :: SmartCard -> String
+exportToIDF sc = intercalate [returnLine] [ showClockStopMode (clockStopMode sc),
+                                            showVoltage (voltage sc),
+                                            showFrequency (frequency sc),
+                                            showATR (atr sc),
+                                            intercalate [returnLine] (map showPIN (security sc)),
+                                            intercalate [returnLine] (map showFile (filesystem sc))]
 
 -- squelette de construction de chaîne de charactères
 
@@ -33,6 +37,15 @@ split separator str = first : (split separator last)
                                                        then (prev, xs)
                                                        else _findToken tok (prev++[x]) xs
 
+-- addBorder
+addBorder :: Int -> String -> String
+addBorder size str = _addBorder size size [] str
+                     where
+                       _addBorder size currItem previous (x:xs) =
+                         if currItem == 0
+                           then _addBorder size size (previous ++ [returnLine]) xs
+                           else _addBorder size (currItem - 1) (previous ++ [x]) xs
+                       _addBorder _ _ previous [] = previous
 
 -- add a  tabulation a character after each return line and the first line
 incrementText :: String -> String -> String
@@ -48,7 +61,7 @@ showField fieldName fieldValue = fieldName ++ " = " ++ fieldValue ++ [returnLine
 showFields :: [(String, String)] -> String
 showFields [] = []
 showFields ((fieldName, fieldValue):[]) = showField fieldName fieldValue
-showFields ((fieldName, fieldValue):xs) = showField fieldName fieldValue ++ "\n" ++ showFields xs
+showFields ((fieldName, fieldValue):xs) = showField fieldName fieldValue ++ showFields xs
 
 
 showDefine :: String -> String -> String
@@ -114,7 +127,12 @@ showPIN (PIN str init enable attempts value) =
                                  ("AttemptsRemaining", show attempts)]
                     ++ showValue value
 
-                    
+
+showFile :: File -> String
+showFile (MasterFile _) = showMasterFile
+showFile (DedicatedFile id parentId) = showDedicatedFile id parentId
+showFile (ElementaryFile id parentId inv accWhInv readC updateC incC invC rehC content) = showElementaryFile id parentId inv accWhInv readC updateC incC invC rehC content
+
 showMasterFile :: String
 showMasterFile = showDefine "MF DF 3F00" []
 
@@ -144,23 +162,29 @@ showElementaryFile fileID
                    increaseAccessCond
                    invalidateAccessCond
                    rehabilitateAccessCond
-                   content = let structure = case content of
-                                               EFTransparent _ -> "Transparent"
-                                               EFLinearFixed _ -> "LinearFixed"
-                                               EFCyclic      _ -> "Cyclic"
-                                 showAccessCond cond = case cond of
-                                                         AccessAlways -> "0"
-                                                         AccessPIN    -> "1"
-                                                         AccessPIN2   -> "2"
-                                                         AccessADM    -> "10"
-                                                         AccessNever  -> "15"
+                   content =
+  let structure = case content of
+                    EFTransparent _ -> "Transparent"
+                    EFLinearFixed _ -> "LinearFixed"
+                    EFCyclic      _ -> "Cyclic"
+      showAccessCond cond = case cond of
+                              AccessAlways -> "0"
+                              AccessPIN    -> "1"
+                              AccessPIN2   -> "2"
+                              AccessADM    -> "10"
+                              AccessNever  -> "15"
                                 -- showContent = 
-                             in showDefine ("EF " ++ show fileID) (showFields[("Parent", show parentFileID),
-                                                                              ("Invalidated", showBool invalid),
-                                                                              ("AccessibleWhenInvalidated", showBool accessWhenInv),
-                                                                              ("Structure", structure),
-                                                                              ("ReadPolicy", showAccessCond readAccessCond),
-                                                                              ("UpdatePolicy", showAccessCond updateAccessCond),
-                                                                              ("IncreasePolicy", showAccessCond increaseAccessCond),
-                                                                              ("InvalidatePolicy", showAccessCond invalidateAccessCond), 
-                                                                              ("RehabilitatePolicy", showAccessCond rehabilitateAccessCond)])
+   in showDefine ("EF " ++ show fileID) (showFields[("Parent", show parentFileID),
+                                                    ("Invalidated", showBool invalid),
+                                                    ("AccessibleWhenInvalidated", showBool accessWhenInv),
+                                                    ("Structure", structure),
+                                                    ("ReadPolicy", showAccessCond readAccessCond),
+                                                    ("UpdatePolicy", showAccessCond updateAccessCond),
+                                                    ("IncreasePolicy", showAccessCond increaseAccessCond),
+                                                    ("InvalidatePolicy", showAccessCond invalidateAccessCond), 
+                                                    ("RehabilitatePolicy", showAccessCond rehabilitateAccessCond)])
+                                        ++ showEFContent content
+
+showEFContent (EFTransparent content) = "Data\n" ++ (addBorder 31 (showW8 content " "))
+showEFContent (EFLinearFixed (x:xs)) = "Record\n" ++ (addBorder 31 (showW8 x " ")) ++ "\n" ++ showEFContent (EFLinearFixed xs)
+showEFContent (EFLinearFixed []) = ""
