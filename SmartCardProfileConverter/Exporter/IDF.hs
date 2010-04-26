@@ -7,6 +7,7 @@ import Data.SmartCard
 import Data.SmartCard.ATR
 import Data.SmartCard.File
 import Data.SmartCard.File.Types
+import Data.SmartCard.Ki
 import Data.SmartCard.PIN
 
 
@@ -21,6 +22,7 @@ exportToIDF sc = intercalate [returnLine] [ showClockStopMode (clockStopMode sc)
                                             showFrequency (frequency sc),
                                             showATR (atr sc),
                                             intercalate [returnLine] (map showPIN (security sc)),
+                                            showKi (ki sc),
                                             intercalate [returnLine] (map showFile (filesystem sc))]
 
 -- squelette de construction de chaîne de charactères
@@ -86,6 +88,10 @@ showBool True  = "Yes"
 showBool False = "No"
 
 
+showFileID :: FileID -> String
+showFileID (FileID (x, y)) = toHex x ++ toHex y
+
+
 showValue :: [Word8] -> String
 showValue xs = "Value\n" ++ showW8 xs " "
 
@@ -120,6 +126,10 @@ showATR :: ATR -> String
 showATR (ATR xs) = showDefine "ATR" (showW8 xs " ")
 
 
+showKi :: Ki -> String
+showKi (Ki xs) = showDefine "Ki" (showW8 xs " ")
+
+
 showPIN :: PIN -> String
 showPIN (PIN str init enable attempts value) =
     showDefine str $ showFields [("Initialised", showBool init), 
@@ -138,7 +148,7 @@ showMasterFile = showDefine "MF DF 3F00" []
 
 
 showDedicatedFile :: FileID -> FileID -> String
-showDedicatedFile fileID parentFileID = showDefine ("DF " ++ show fileID) (showField "Parent" (show parentFileID))
+showDedicatedFile fileID parentFileID = showDefine ("DF " ++ showFileID fileID) (showField "Parent" (showFileID parentFileID))
 
 
 -- ElementaryFile FileID FileID Bool Bool EFAccessCondition EFAccessCondition EFAccessCondition EFAccessCondition EFAccessCondition EFContent
@@ -174,17 +184,19 @@ showElementaryFile fileID
                               AccessADM    -> "10"
                               AccessNever  -> "15"
                                 -- showContent = 
-   in showDefine ("EF " ++ show fileID) (showFields[("Parent", show parentFileID),
-                                                    ("Invalidated", showBool invalid),
-                                                    ("AccessibleWhenInvalidated", showBool accessWhenInv),
-                                                    ("Structure", structure),
-                                                    ("ReadPolicy", showAccessCond readAccessCond),
-                                                    ("UpdatePolicy", showAccessCond updateAccessCond),
-                                                    ("IncreasePolicy", showAccessCond increaseAccessCond),
-                                                    ("InvalidatePolicy", showAccessCond invalidateAccessCond), 
-                                                    ("RehabilitatePolicy", showAccessCond rehabilitateAccessCond)])
-                                        ++ showEFContent content
+   in showDefine ("EF " ++ showFileID fileID) (showFields[("Parent", showFileID parentFileID),
+                                                          ("Invalidated", showBool invalid),
+                                                          ("AccessibleWhenInvalidated", showBool accessWhenInv),
+                                                          ("Structure", structure),
+                                                          ("ReadPolicy", showAccessCond readAccessCond),
+                                                          ("UpdatePolicy", showAccessCond updateAccessCond),
+                                                          ("IncreasePolicy", showAccessCond increaseAccessCond),
+                                                          ("InvalidatePolicy", showAccessCond invalidateAccessCond), 
+                                                          ("RehabilitatePolicy", showAccessCond rehabilitateAccessCond)])
+                                              ++ "\n"
+                                              ++ incrementText (showEFContent content) tab
+                                              ++ "\n"
 
-showEFContent (EFTransparent content) = "Data\n" ++ (addBorder 31 (showW8 content " "))
-showEFContent (EFLinearFixed (x:xs)) = "Record\n" ++ (addBorder 31 (showW8 x " ")) ++ "\n" ++ showEFContent (EFLinearFixed xs)
+showEFContent (EFTransparent content) = "Data\n" ++ (addBorder 47 (showW8 content " "))
+showEFContent (EFLinearFixed (x:xs)) = "Record\n" ++ (addBorder 47 (showW8 x " ")) ++ "\n" ++ showEFContent (EFLinearFixed xs)
 showEFContent (EFLinearFixed []) = ""

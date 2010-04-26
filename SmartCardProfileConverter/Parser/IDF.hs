@@ -155,9 +155,9 @@ getClockStopMode = do value <- getDigitField "ClockStopMode"
                         "0" -> return $ ClockStopNotAllowed
                         "1" -> return $ ClockStopNotAllowedUnlessAtLowLevel
                         "2" -> return $ ClockStopNotAllowedUnlessAtHighLevel
-                        "3" -> return $ ClockStopAllowedNoPreferredLevel
-                        "4" -> return $ ClockStopAllowedLowLevelPreferred
-                        "5" -> return $ ClockStopAllowedHighLevelPreferred
+                        "4" -> return $ ClockStopAllowedNoPreferredLevel
+                        "5" -> return $ ClockStopAllowedLowLevelPreferred
+                        "6" -> return $ ClockStopAllowedHighLevelPreferred
                         otherwise -> fail "Unknown value for ClockModeStop"
 
 getVoltage :: Parser Voltage
