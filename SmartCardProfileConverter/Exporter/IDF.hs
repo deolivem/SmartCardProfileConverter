@@ -1,4 +1,4 @@
-module Exporter.IDF where
+module Exporter.IDF (exportToIDF) where
 
 import Data.Word
 import Data.Hexadecimal
@@ -143,6 +143,7 @@ showFile (MasterFile _) = showMasterFile
 showFile (DedicatedFile id parentId) = showDedicatedFile id parentId
 showFile (ElementaryFile id parentId inv accWhInv readC updateC incC invC rehC content) = showElementaryFile id parentId inv accWhInv readC updateC incC invC rehC content
 
+
 showMasterFile :: String
 showMasterFile = showDefine "MF DF 3F00" []
 
@@ -181,9 +182,8 @@ showElementaryFile fileID
                               AccessAlways -> "0"
                               AccessPIN    -> "1"
                               AccessPIN2   -> "2"
-                              AccessADM    -> "10"
+                              AccessADM    -> "11"
                               AccessNever  -> "15"
-                                -- showContent = 
    in showDefine ("EF " ++ showFileID fileID) (showFields[("Parent", showFileID parentFileID),
                                                           ("Invalidated", showBool invalid),
                                                           ("AccessibleWhenInvalidated", showBool accessWhenInv),

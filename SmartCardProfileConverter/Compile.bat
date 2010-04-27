@@ -1,2 +1,2 @@
-ghc --make Main -o ProfileConverter
+ghc --make Main -O3 -o ProfileConverter
 PAUSE

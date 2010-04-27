@@ -10,6 +10,7 @@ getExporter :: FilePath -> SmartCard -> String
 getExporter file = let (_, ext) = splitExtension file in
                      case ext of
                        ".idf" -> exportToIDF
+                       ".dfl" -> exportToDFL
                        otherwise -> error "file type not supported"
 
 
